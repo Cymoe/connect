@@ -1,0 +1,513 @@
+{
+    "nodes": [
+      {
+        "parameters": {
+          "resource": "fileFolder",
+          "returnAll": true,
+          "filter": {
+            "folderId": {
+              "__rl": true,
+              "value": "1PaIeRdrUefDcyrXSYQ-CJlNATIbDZhst",
+              "mode": "id"
+            }
+          },
+          "options": {
+            "fields": [
+              "*"
+            ]
+          }
+        },
+        "name": "List Files4",
+        "type": "n8n-nodes-base.googleDrive",
+        "typeVersion": 3,
+        "position": [
+          -5140,
+          1440
+        ],
+        "id": "3bb38b58-0941-4dc9-aca9-9f5d3a7c17ef",
+        "alwaysOutputData": true,
+        "credentials": {
+          "googleDriveOAuth2Api": {
+            "id": "ikEUzylg2WpiD6c2",
+            "name": "Google Drive account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "// Get all file IDs from Google Drive\nconst driveItems = $input.all();\nconst driveFileIds = [];\n\n// Extract all file IDs from Google Drive results\nfor (const item of driveItems) {\n  if (item.json && item.json.id) {\n    driveFileIds.push(`'${item.json.id}'`);\n  }\n}\n\n// For the case of completely empty folder\nif (driveFileIds.length === 0) {\n  // Handle empty folder case\n  return [{\n    json: {\n      deleteRowsQuery: `DELETE FROM document_rows`,\n      deleteMetadataQuery: `DELETE FROM document_metadata`\n    }\n  }];\n} else {\n  // Normal case - delete everything except current files\n  const driveIdsString = driveFileIds.join(',');\n  return [{\n    json: {\n      deleteRowsQuery: `DELETE FROM document_rows WHERE dataset_id NOT IN (${driveIdsString})`,\n      deleteMetadataQuery: `DELETE FROM document_metadata WHERE id NOT IN (${driveIdsString})`\n    }\n  }];\n}"
+        },
+        "name": "Prepare Cleanup SQL",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 1,
+        "position": [
+          -4880,
+          1920
+        ],
+        "id": "eb58b56c-a5ea-47b8-a617-80c8e808b77f"
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "={{ $json.deleteRowsQuery }}",
+          "options": {}
+        },
+        "name": "Delete Old Rows",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          -4660,
+          1780
+        ],
+        "id": "f193493f-c041-4058-ae7a-8ce774ebb5a6",
+        "credentials": {
+          "postgres": {
+            "id": "LwdXJsnvDqlhIB3Z",
+            "name": "Postgres account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "={{ $json.deleteMetadataQuery }}",
+          "options": {}
+        },
+        "name": "Delete Old Metadata8",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          -4660,
+          1980
+        ],
+        "id": "6d53cb02-9849-4254-bf59-3de1dddab3fc",
+        "credentials": {
+          "postgres": {
+            "id": "LwdXJsnvDqlhIB3Z",
+            "name": "Postgres account"
+          }
+        }
+      },
+      {
+        "parameters": {},
+        "name": "Cleanup Complete",
+        "type": "n8n-nodes-base.noOp",
+        "typeVersion": 1,
+        "position": [
+          -4440,
+          1920
+        ],
+        "id": "51f5f5fb-3cca-4e48-9b50-e1d8f8492880"
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "boolean": [
+              {
+                "value1": "={{ $json.has_file_id }}",
+                "value2": true
+              }
+            ]
+          }
+        },
+        "id": "ad2ea1ee-8135-4b71-92de-e48b925ed05b",
+        "name": "IF2",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 1,
+        "position": [
+          -4700,
+          1440
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "DELETE FROM document_rows WHERE dataset_id = $1 RETURNING dataset_id as deleted_id;",
+          "options": {
+            "queryReplacement": "={{ [$json.file_id] }}"
+          }
+        },
+        "id": "6f39c30e-bb00-4bb3-9f8d-64150a21bb8f",
+        "name": "Delete Old Data Rows4",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          -4460,
+          1340
+        ],
+        "alwaysOutputData": true,
+        "retryOnFail": true,
+        "credentials": {
+          "postgres": {
+            "id": "LwdXJsnvDqlhIB3Z",
+            "name": "Postgres account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "DELETE FROM document_metadata WHERE id = $1 RETURNING id as deleted_meta_id;",
+          "options": {
+            "queryReplacement": "={{ [$json.file_id] }}"
+          }
+        },
+        "id": "7cc7a9a9-9c28-4a0d-bd96-b9fc98c9ab6e",
+        "name": "Delete Old Metadata9",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          -4460,
+          1620
+        ],
+        "alwaysOutputData": true,
+        "credentials": {
+          "postgres": {
+            "id": "LwdXJsnvDqlhIB3Z",
+            "name": "Postgres account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "functionCode": "// Make sure all required values exist\nconst item = $input.item.json;\n\nreturn {\n  json: {\n    file_id: item.file_id,\n    file_title: item.file_title || '',\n    file_url: item.file_url || '',\n    created_at: item.created_at || new Date().toISOString(),\n    updated_at_drive: item.updated_at_drive || new Date().toISOString()\n  }\n};"
+        },
+        "name": "Clean Data for Insert",
+        "type": "n8n-nodes-base.functionItem",
+        "typeVersion": 1,
+        "position": [
+          -4340,
+          1440
+        ],
+        "id": "clean-data-node"
+      },
+      {
+        "parameters": {
+          "operation": "upsert",
+          "schema": {
+            "__rl": true,
+            "mode": "list",
+            "value": "public"
+          },
+          "table": {
+            "__rl": true,
+            "value": "document_metadata",
+            "mode": "list"
+          },
+          "columns": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "url": "={{ $json.file_url }}",
+              "id": "={{ $json.file_id }}",
+              "updated_at": "={{ $json.updated_at_drive }}",
+              "created_at": "={{ $json.created_at }}",
+              "title": "={{ $json.file_title }}"
+            },
+            "matchingColumns": [
+              "id"
+            ],
+            "schema": [
+              {
+                "id": "id",
+                "displayName": "id",
+                "required": true,
+                "defaultMatch": true,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "title",
+                "displayName": "title",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": false
+              },
+              {
+                "id": "url",
+                "displayName": "url",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": false
+              },
+              {
+                "id": "created_at",
+                "displayName": "created_at",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "dateTime",
+                "canBeUsedToMatch": false
+              },
+              {
+                "id": "schema",
+                "displayName": "schema",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": false,
+                "removed": true
+              },
+              {
+                "id": "status",
+                "displayName": "status",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": false,
+                "removed": true
+              },
+              {
+                "id": "processed_at",
+                "displayName": "processed_at",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "dateTime",
+                "canBeUsedToMatch": false,
+                "removed": true
+              },
+              {
+                "id": "error",
+                "displayName": "error",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": false,
+                "removed": true
+              },
+              {
+                "id": "updated_at",
+                "displayName": "updated_at",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "dateTime",
+                "canBeUsedToMatch": false
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          -4220,
+          1440
+        ],
+        "id": "eb97d0da-420a-4175-82bb-ad9fdaf167fb",
+        "name": "Insert Document Metadata4",
+        "credentials": {
+          "postgres": {
+            "id": "LwdXJsnvDqlhIB3Z",
+            "name": "Postgres account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "name": "file_id",
+                "value": "={{ $json.id }}",
+                "type": "string",
+                "id": "2264395d-1be1-457b-b24a-ed2020128bcf"
+              },
+              {
+                "name": "file_title",
+                "value": "={{ $json.name }}",
+                "type": "string",
+                "id": "e9f0123a-2599-4db8-a59b-61017883a00b"
+              },
+              {
+                "name": "file_url",
+                "value": "={{ $json.webViewLink }}",
+                "type": "string",
+                "id": "3ecc0d06-5d86-47de-a7f5-c59cd73624ef"
+              },
+              {
+                "name": "created_at",
+                "value": "={{new Date().toISOString()}}",
+                "type": "string",
+                "id": "f39370cb-dc4b-49cb-b68f-e38fb9f9cce6"
+              },
+              {
+                "name": "updated_at_drive",
+                "value": "={{$json.modifiedTime}}",
+                "type": "string",
+                "id": "b5f24a07-40d0-4be7-9527-2479dc74975f"
+              },
+              {
+                "id": "9bd148d4-5242-4adb-b005-77bbbea40e1e",
+                "name": "has_file_id",
+                "value": "={{ $json.id ? true : false }}",
+                "type": "boolean"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          -4920,
+          1440
+        ],
+        "id": "5cf5c45d-6bd9-4302-a67b-613c1d0f982d",
+        "name": "Edit Fields3"
+      },
+      {
+        "parameters": {},
+        "type": "n8n-nodes-base.manualTrigger",
+        "typeVersion": 1,
+        "position": [
+          -5340,
+          1460
+        ],
+        "id": "6e76fe62-0ddd-4f9d-8877-89d01917d196",
+        "name": "When clicking 'Test workflow'"
+      }
+    ],
+    "connections": {
+      "List Files4": {
+        "main": [
+          [
+            {
+              "node": "Edit Fields3",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Prepare Cleanup SQL",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Cleanup SQL": {
+        "main": [
+          [
+            {
+              "node": "Delete Old Rows",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Delete Old Metadata8",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Delete Old Rows": {
+        "main": [
+          [
+            {
+              "node": "Cleanup Complete",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Delete Old Metadata8": {
+        "main": [
+          [
+            {
+              "node": "Cleanup Complete",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IF2": {
+        "main": [
+          [
+            {
+              "node": "Delete Old Data Rows4",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Delete Old Data Rows4": {
+        "main": [
+          [
+            {
+              "node": "Delete Old Metadata9",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Delete Old Metadata9": {
+        "main": [
+          [
+            {
+              "node": "Clean Data for Insert",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Clean Data for Insert": {
+        "main": [
+          [
+            {
+              "node": "Insert Document Metadata4",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Insert Document Metadata4": {
+        "main": [
+          []
+        ]
+      },
+      "Edit Fields3": {
+        "main": [
+          [
+            {
+              "node": "IF2",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "When clicking 'Test workflow'": {
+        "main": [
+          [
+            {
+              "node": "List Files4",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "pinData": {},
+    "meta": {
+      "templateCredsSetupCompleted": true,
+      "instanceId": "c16dacb2c5213d0f2ad6d2cbf4f46d1e6cfda2817d7dc422b31355b1240367d9"
+    }
+  }
