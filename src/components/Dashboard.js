@@ -8,6 +8,10 @@ const DashboardContainer = styled.div`
   padding: 40px;
   max-width: 800px;
   margin: 0 auto;
+  
+  @media (max-width: 768px) {
+    padding: 20px 16px;
+  }
 `;
 
 const WelcomeHeader = styled.h1`
@@ -16,6 +20,11 @@ const WelcomeHeader = styled.h1`
   margin-bottom: 40px;
   text-align: center;
   color: #e0e0e0;
+  
+  @media (max-width: 768px) {
+    font-size: 28px;
+    margin-bottom: 24px;
+  }
 `;
 
 const SuggestedPrompts = styled.div`
@@ -29,6 +38,12 @@ const SuggestedPromptHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
+  
+  @media (max-width: 480px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
 `;
 
 const PromptSectionTitle = styled.h3`
@@ -54,6 +69,10 @@ const PromptHelpText = styled.p`
   color: #999;
   text-align: center;
   margin: 20px 0;
+  
+  @media (max-width: 480px) {
+    font-size: 12px;
+  }
 `;
 
 const HelpLink = styled.a`

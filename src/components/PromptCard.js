@@ -15,6 +15,11 @@ const Card = styled.div`
   &:hover {
     background-color: #2a2a2a;
   }
+  
+  @media (max-width: 480px) {
+    padding: 12px;
+    margin-bottom: 10px;
+  }
 `;
 
 const Icon = styled.div`
@@ -27,12 +32,20 @@ const Icon = styled.div`
   justify-content: center;
   font-size: 12px;
   color: #e0e0e0;
+  
+  @media (max-width: 480px) {
+    min-width: 24px; /* Prevent shrinking */
+  }
 `;
 
 const PromptText = styled.p`
   font-size: 14px;
   color: #ddd;
   font-weight: 500;
+  
+  @media (max-width: 480px) {
+    font-size: 13px;
+  }
 `;
 
 const PromptCard = ({ icon, text, onClick }) => {

@@ -5,6 +5,12 @@ const TabsContainer = styled.div`
   display: flex;
   gap: 4px;
   margin-bottom: 20px;
+  
+  @media (max-width: 480px) {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
 `;
 
 const TabButton = styled.button`
@@ -19,6 +25,12 @@ const TabButton = styled.button`
   
   &:hover {
     background-color: ${props => props.active ? '#2d2d2d' : '#222'};
+  }
+  
+  @media (max-width: 480px) {
+    padding: 10px;
+    font-size: 13px;
+    text-align: center;
   }
 `;
 

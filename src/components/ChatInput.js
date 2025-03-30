@@ -4,6 +4,10 @@ import styled from 'styled-components';
 const InputContainer = styled.div`
   position: relative;
   margin-top: 20px;
+  
+  @media (max-width: 480px) {
+    margin-top: 16px;
+  }
 `;
 
 const StyledInput = styled.input`
@@ -26,6 +30,11 @@ const StyledInput = styled.input`
   &::placeholder {
     color: #777;
   }
+  
+  @media (max-width: 480px) {
+    padding: 12px 45px 12px 16px;
+    font-size: 14px;
+  }
 `;
 
 const SendButton = styled.button`
@@ -46,6 +55,12 @@ const SendButton = styled.button`
   &:hover {
     background-color: #6b7afc;
     color: white;
+  }
+  
+  @media (max-width: 480px) {
+    width: 32px;
+    height: 32px;
+    right: 8px;
   }
 `;
 
